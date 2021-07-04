@@ -1,0 +1,18 @@
+{
+  "extends": "@tsconfig/node14/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "allowSyntheticDefaultImports": true
+  }
+}
