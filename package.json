@@ -1,5 +1,26 @@
 {
-  "private": true,
+  "name": "zap",
+  "version": "0.0.1",
+  "description": "Lightweight HTTP server framework for Node",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jacobwgillespie/zap.git"
+  },
+  "homepage": "https://github.com/jacobwgillespie/zap",
+  "funding": {
+    "type": "GitHub",
+    "url": "https://github.com/sponsors/jacobwgillespie"
+  },
+  "author": {
+    "name": "Jacob Gillespie",
+    "email": "jacobwgillespie@gmail.com"
+  },
+  "license": "MIT",
+  "main": "./dist/zap.js",
+  "types": "./dist/zap.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
