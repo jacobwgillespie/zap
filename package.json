@@ -1,6 +1,6 @@
 {
   "name": "zap",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Lightweight HTTP server framework for Node",
   "repository": {
     "type": "git",
