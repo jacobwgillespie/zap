@@ -27,6 +27,10 @@ const server = http.createServer(serve(app))
 server.listen(3000)
 ```
 
+## Credits
+
+Special thanks to [@nornagon](https://github.com/nornagon) for the `zap` package name. For versions of this module published before `v1.0.0`, see [nornagon/node-zap](https://github.com/nornagon/node-zap).
+
 ## License
 
 MIT License, see `LICENSE`.
