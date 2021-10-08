@@ -1,4 +1,4 @@
-# ⚡ zap
+# ⚡ zap [![npm](https://badgen.net/npm/v/zap)](https://www.npmjs.com/package/zap) [![CI](https://github.com/jacobwgillespie/zap/actions/workflows/ci.yml/badge.svg)](https://github.com/jacobwgillespie/zap/actions/workflows/ci.yml)
 
 Zap is a lightweight HTTP server framework for Node.
 
