@@ -42,7 +42,7 @@ export function serve(handler: Handler, options: ServeOptions = {}) {
       const serverRequest = requestFromHTTP(req, options)
       const serverResponse = responseFromHTTP(res)
       await handler(serverRequest, serverResponse, async (_, res) => notFound(res))
-    } catch (error) {
+    } catch (error: any) {
       if (options.onError) await options.onError(error)
       else if (!res.writableEnded) sendError(res, error)
     }
@@ -102,7 +102,7 @@ export async function buffer(req: ServerRequest, {limit = '1mb', encoding}: Requ
     const body = Buffer.from(await getRawBody(req as any, {limit, length, encoding}))
     requestBodyMap.set(req, body)
     return body
-  } catch (error) {
+  } catch (error: any) {
     if (error.type === 'entity.too.large') {
       throw createError(413, `Body exceeded ${limit} limit`, error)
     }
@@ -118,7 +118,7 @@ export async function json(req: ServerRequest, options: RequestBodyOptions = {})
   return await text(req, options).then((body) => {
     try {
       return JSON.parse(body)
-    } catch (error) {
+    } catch (error: any) {
       throw createError(400, 'Invalid JSON', error)
     }
   })
