@@ -85,7 +85,7 @@ export interface RequestBodyOptions {
   encoding?: string
 }
 
-const requestBodyMap = new WeakMap()
+const requestBodyMap = new WeakMap<ServerRequest, Buffer>()
 
 export async function buffer(req: ServerRequest, {limit = '1mb', encoding}: RequestBodyOptions = {}) {
   const type = req.headers['content-type'] ?? 'text/plain'
