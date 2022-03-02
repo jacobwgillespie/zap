@@ -13,69 +13,83 @@ const IS_DEV = process.env.NODE_ENV === 'development'
 // See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods (omitted CONNECT and TRACE)
 export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'PATCH'
 
-export interface ServerRequest<Params = unknown, RequestBody = unknown> extends Omit<http.IncomingMessage, 'url'> {
-  body: RequestBody
+export interface ServerRequest<Params = unknown> extends http.IncomingMessage {
   params: Params
   protocol: 'http' | 'https'
-  url: URL
+  parsedURL: URL
 }
 
 export interface ServerResponse extends http.ServerResponse {}
 
-export type ResponseBodyType = string | object | number | Buffer | Stream | null
-export type Next = (req: ServerRequest, res: ServerResponse) => Promise<void>
+export type ResponseBodyType = string | object | number | Buffer | Stream | Error | null
 export type Handler<
   ResponseBody extends ResponseBodyType = ResponseBodyType,
   Request extends ServerRequest = ServerRequest,
-> = (req: Request, res: ServerResponse, next: Next) => ResponseBody | Promise<ResponseBody>
+> = (req: Request, res: ServerResponse) => ResponseBody | Promise<ResponseBody>
+export type ErrorHandler = (
+  req: ServerRequest,
+  res: ServerResponse,
+  err: unknown,
+) => ResponseBodyType | Promise<ResponseBodyType>
 
 // Serve -----------------------------------------------------------------------
 
 export interface ServeOptions {
   trustProxy?: boolean
-  onError?: (err: Error) => void | Promise<void>
+  errorHandler?: ErrorHandler
 }
 
 export function serve(handler: Handler, options: ServeOptions = {}) {
   return async function (req: http.IncomingMessage, res: http.ServerResponse) {
+    const serverRequest = requestFromHTTP(req, options)
+    const serverResponse = responseFromHTTP(res)
+
     try {
-      const serverRequest = requestFromHTTP(req, options)
-      const serverResponse = responseFromHTTP(res)
-      await handler(serverRequest, serverResponse, async (_, res) => notFound(res))
-    } catch (error: any) {
-      if (options.onError) await options.onError(error)
-      else if (!res.writableEnded) sendError(res, error)
+      await handler(serverRequest, serverResponse)
+    } catch (error) {
+      if (res.writableEnded) throw error
+
+      if (error instanceof RedirectError) {
+        res.statusCode = error.statusCode
+        res.setHeader('Location', error.location)
+        res.end()
+        return
+      }
+
+      const errorHandler = options.errorHandler ?? ((_, res, error) => sendError(res, error))
+      errorHandler(serverRequest, serverResponse, error)
     }
   }
 }
 
 // Request ---------------------------------------------------------------------
 
+const protocolFromRequest = fromRequest((req, options: ServeOptions) => {
+  const socketProtocol = Boolean((req.socket as tls.TLSSocket).encrypted) ? 'https' : 'http'
+  if (!options.trustProxy) return socketProtocol
+  const headerProtocol = getHeader(req, 'x-forwarded-proto') ?? socketProtocol
+  const commaIndex = headerProtocol.indexOf(',')
+  return commaIndex === -1 ? headerProtocol.trim() : headerProtocol.substring(0, commaIndex).trim()
+})
+
+const queryFromRequest = fromRequest((req) => {
+  return Object.fromEntries(req.parsedURL.searchParams)
+})
+
+const urlFromRequest = fromRequest((req) => {
+  return new URL(req.url!, `${req.protocol}://${req.headers.host}`)
+})
+
 function requestFromHTTP(req: http.IncomingMessage, options: ServeOptions): ServerRequest {
-  const originalURL = req.url!
-
   const serverRequest: ServerRequest = Object.defineProperties<ServerRequest>(req as unknown as ServerRequest, {
-    protocol: cachedGetter(req, () => {
-      const socketProtocol = Boolean((req.socket as tls.TLSSocket).encrypted) ? 'https' : 'http'
-      if (!options.trustProxy) return socketProtocol
-      const headerProtocol = getHeader(serverRequest, 'x-forwarded-proto') ?? socketProtocol
-      const commaIndex = headerProtocol.indexOf(',')
-      return commaIndex === -1 ? headerProtocol.trim() : headerProtocol.substring(0, commaIndex).trim()
-    }),
-
-    query: cachedGetter(req, () => {
-      return Object.fromEntries(serverRequest.url.searchParams)
-    }),
-
-    url: cachedGetter(req, () => {
-      return new URL(originalURL, `http://${req.headers.host}`)
-    }),
+    protocol: {get: () => protocolFromRequest(serverRequest, options), enumerable: true},
+    query: {get: () => queryFromRequest(serverRequest), enumerable: true},
+    parsedURL: {get: () => urlFromRequest(serverRequest), enumerable: true},
   })
-
   return serverRequest
 }
 
-export function getHeader(req: ServerRequest, header: string): string | undefined {
+export function getHeader(req: http.IncomingMessage, header: string): string | undefined {
   const value = req.headers[header]
   return Array.isArray(value) ? value[0] : value
 }
@@ -85,9 +99,9 @@ export interface RequestBodyOptions {
   encoding?: string
 }
 
-const requestBodyMap = new WeakMap<ServerRequest, Buffer>()
+const requestBodyMap = new WeakMap<http.IncomingMessage, Buffer>()
 
-export async function buffer(req: ServerRequest, {limit = '1mb', encoding}: RequestBodyOptions = {}) {
+export async function buffer(req: http.IncomingMessage, {limit = '1mb', encoding}: RequestBodyOptions = {}) {
   const type = req.headers['content-type'] ?? 'text/plain'
   const length = req.headers['content-length']
 
@@ -104,22 +118,22 @@ export async function buffer(req: ServerRequest, {limit = '1mb', encoding}: Requ
     return body
   } catch (error: any) {
     if (error.type === 'entity.too.large') {
-      throw createError(413, `Body exceeded ${limit} limit`, error)
+      throw httpError(413, `Body exceeded ${limit} limit`, error)
     }
-    throw createError(400, 'Invalid body', error)
+    throw httpError(400, 'Invalid body', error)
   }
 }
 
-export async function text(req: ServerRequest, options: RequestBodyOptions = {}) {
+export async function text(req: http.IncomingMessage, options: RequestBodyOptions = {}) {
   return await buffer(req, options).then((body) => body.toString())
 }
 
-export async function json(req: ServerRequest, options: RequestBodyOptions = {}) {
+export async function json(req: http.IncomingMessage, options: RequestBodyOptions = {}) {
   return await text(req, options).then((body) => {
     try {
       return JSON.parse(body)
     } catch (error: any) {
-      throw createError(400, 'Invalid JSON', error)
+      throw httpError(400, 'Invalid JSON', error)
     }
   })
 }
@@ -131,12 +145,17 @@ function responseFromHTTP(res: http.ServerResponse): ServerResponse {
   return serverResponse
 }
 
-export function send(res: ServerResponse, code: number, body: ResponseBodyType = null) {
+export function send(res: http.ServerResponse, code: number, body: ResponseBodyType = null) {
   res.statusCode = code
 
   if (body === null || body === undefined) {
     res.end()
     return
+  }
+
+  // Throw errors so they can be handled by the error handler
+  if (body instanceof Error) {
+    throw body
   }
 
   if (body instanceof Stream || isReadableStream(body)) {
@@ -171,40 +190,47 @@ export function send(res: ServerResponse, code: number, body: ResponseBodyType =
   res.end(stringifiedBody)
 }
 
-export function sendError(res: ServerResponse, error: HttpError) {
-  const statusCode = error.statusCode
-  const message = statusCode ? error.message : 'Internal Server Error'
-  send(res, statusCode ?? 500, IS_DEV ? error.stack : message)
-  console.error(error.stack)
+function sendError(res: http.ServerResponse, error: unknown) {
+  if (error instanceof HttpError) {
+    send(res, error.statusCode, error.message)
+  } else if (error instanceof Error) {
+    send(res, 500, IS_DEV ? error.stack : error.message)
+  } else {
+    send(res, 500, `${error}`)
+  }
 }
 
-export function notFound(res: ServerResponse) {
-  send(res, 404, 'Not Found')
+export function notFound() {
+  return httpError(404, 'Not Found')
 }
 
 // Router ----------------------------------------------------------------------
 
-const notFoundMiddleware: Handler = async (_, res) => send(res, 404, 'Not Found')
-
-export function router(...middleware: Handler<ResponseBodyType, ServerRequest<any, any>>[]) {
+export function router(...handlers: RouteHandler[]) {
   return async function (req: ServerRequest, res: ServerResponse) {
-    const next = async (req: ServerRequest, res: ServerResponse, idx: number) => {
-      const current = middleware[idx] ?? notFoundMiddleware
-      await current(req, res, (req, res) => next(req, res, idx + 1))
+    for (const current of handlers) {
+      if (req.method !== current.method) continue
+      const match = current.matchPath(req.parsedURL.pathname)
+      if (!match) continue
+      req.params = match.params
+      await current(req as ServerRequest<any>, res)
     }
-
-    await next(req, res, 0)
+    return send(res, 404, 'Not Found')
   }
 }
 
-export type RouteHandler<
+export interface RouteHandler<
   Method extends HttpMethod = HttpMethod,
   Route extends string = string,
   ResponseBody extends ResponseBodyType = ResponseBodyType,
-  Request extends ServerRequest = ServerRequest,
-> = Handler<ResponseBody, Request> & {method: Method; route: Route; compilePath: (params?: Request['params']) => string}
+> extends Handler<ResponseBody, ServerRequest<RouteParams<Route>>> {
+  method: Method
+  route: Route
+  compilePath: (params?: RouteParams<Route>) => string
+  matchPath: (path: string) => false | {params: RouteParams<Route>; path: string; index: number}
+}
 
-// Type signature without a body validator
+// Type signature
 export function route<
   ResponseBody extends ResponseBodyType,
   Method extends HttpMethod = HttpMethod,
@@ -213,78 +239,47 @@ export function route<
   method: Method,
   path: Route,
   handler: Handler<ResponseBody, ServerRequest<RouteParams<Route>>>,
-): RouteHandler<Method, Route, ResponseBody, ServerRequest<RouteParams<Route>>>
-
-// Type signature with a body validator
-export function route<
-  RequestBody extends object = object,
-  ResponseBody extends ResponseBodyType = ResponseBodyType,
-  Method extends HttpMethod = HttpMethod,
-  Route extends string = string,
->(
-  method: Method,
-  path: Route,
-  handler: Handler<ResponseBody, ServerRequest<RouteParams<Route>>>,
-  validator: (body: object) => body is RequestBody,
-): RouteHandler<Method, Route, ResponseBody, ServerRequest<RouteParams<Route>, RequestBody>>
+): RouteHandler<Method, Route, ResponseBody>
 
 // Implementation
-export function route<
-  RequestBody extends object = object,
-  ResponseBody extends ResponseBodyType = ResponseBodyType,
-  Method extends HttpMethod = HttpMethod,
-  Route extends string = string,
->(
-  method: Method,
-  path: Route,
-  handler: Handler<ResponseBody, ServerRequest<any>>,
-  validator?: (body: object) => body is RequestBody,
+export function route(
+  method: HttpMethod,
+  path: string,
+  handler: Handler<ResponseBodyType, ServerRequest<any>>,
 ): RouteHandler {
-  const matchPath = match<RouteParams<Route>>(path)
-  const compilePath = compile<any>(path)
-
-  const routeHandler: Handler = async (req, res, next) => {
-    if (req.method !== method) return await next(req, res)
-    const pathMatch = matchPath(req.url.pathname)
-    if (!pathMatch) return await next(req, res)
-
-    req.params = pathMatch.params
-
-    let body: object | undefined = undefined
-    if (validator) {
-      body = await json(req)
-      if (typeof body !== 'object' || body === null || !validator(body)) {
-        return sendError(res, createError(422, 'Request body failed validation'))
-      }
-    }
-
-    const responseBody = await Promise.resolve(handler(Object.assign(req, {body}), res, next))
-
-    if (responseBody === null) {
-      send(res, 204, null)
-      return
-    }
-
-    if (responseBody !== undefined) {
-      send(res, res.statusCode ?? 200, responseBody)
-    }
+  const routeHandler: Handler = async (req, res) => {
+    const responseBody = await Promise.resolve(handler(req, res))
+    if (responseBody === null) return send(res, 204, null)
+    if (responseBody === undefined) return
+    send(res, res.statusCode ?? 200, responseBody)
   }
-
-  return Object.assign(routeHandler, {method, route: path, compilePath})
+  return Object.assign(routeHandler, {method, route: path, compilePath: compile<any>(path), matchPath: match(path)})
 }
 
 // Errors ----------------------------------------------------------------------
 
-export interface HttpError extends Error {
-  statusCode?: number
-  originalError?: Error
+export class HttpError extends Error {
+  constructor(public statusCode: number, message: string, public metadata: unknown) {
+    super(message)
+    if (Error.captureStackTrace) Error.captureStackTrace(this, RedirectError)
+  }
 }
 
-export function createError(code: number, message: string, original?: Error): HttpError {
-  const error: HttpError = new Error(message)
-  error.statusCode = code
-  error.originalError = original
-  return error
+export function httpError(code: number, message: string, metadata?: unknown): HttpError {
+  return new HttpError(code, message, metadata)
+}
+
+// Redirects -------------------------------------------------------------------
+
+export class RedirectError extends Error {
+  constructor(public statusCode: number, public location: string) {
+    super(`Redirect to ${location}, status code ${statusCode}`)
+    if (Error.captureStackTrace) Error.captureStackTrace(this, RedirectError)
+  }
+}
+
+export function redirect(location: string, statusCode = 303) {
+  return new RedirectError(statusCode, location)
 }
 
 // Utilities -------------------------------------------------------------------
@@ -302,17 +297,29 @@ function isReadableStream(val: unknown): val is Readable {
   )
 }
 
-function cachedGetter<T>(obj: object, getter: () => T) {
-  const cache = new WeakMap()
-  return {
-    get: (): T => {
-      if (cache.has(obj)) return cache.get(obj)
-      const value = getter()
-      cache.set(obj, value)
+/**
+ * Creates a function that caches its results for a given request. Both successful responses
+ * and errors are cached.
+ *
+ * @param fn The function that should be cached.
+ * @returns The results of calling the function
+ */
+export function fromRequest<Fn extends (req: ServerRequest, ...rest: any[]) => any>(fn: Fn): Fn {
+  const cache = new WeakMap<ServerRequest, any>()
+  const errorCache = new WeakMap<ServerRequest, any>()
+  const cachedFn = (req: ServerRequest) => {
+    if (errorCache.has(req)) throw errorCache.get(req)
+    if (cache.has(req)) return cache.get(req)
+    try {
+      const value = fn(req)
+      cache.set(req, value)
       return value
-    },
-    enumerable: true,
+    } catch (error) {
+      errorCache.set(req, error)
+      throw error
+    }
   }
+  return cachedFn as Fn
 }
 
 // TODO: can we support more param types here?
