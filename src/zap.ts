@@ -206,7 +206,7 @@ export function notFound() {
 
 // Router ----------------------------------------------------------------------
 
-export function router(...handlers: RouteHandler[]) {
+export function router(...handlers: RouteHandler<HttpMethod, any, ResponseBodyType>[]) {
   return async function (req: ServerRequest, res: ServerResponse) {
     for (const current of handlers) {
       if (req.method !== current.method) continue
