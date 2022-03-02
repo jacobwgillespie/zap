@@ -25,12 +25,12 @@ export type ResponseBodyType = string | object | number | Buffer | Stream | Erro
 export type Handler<
   ResponseBody extends ResponseBodyType = ResponseBodyType,
   Request extends ServerRequest = ServerRequest,
-> = (req: Request, res: ServerResponse) => ResponseBody | Promise<ResponseBody>
+> = (req: Request, res: ServerResponse) => void | ResponseBody | Promise<ResponseBody>
 export type ErrorHandler = (
   req: ServerRequest,
   res: ServerResponse,
   err: unknown,
-) => ResponseBodyType | Promise<ResponseBodyType>
+) => void | ResponseBodyType | Promise<ResponseBodyType>
 
 // Serve -----------------------------------------------------------------------
 
