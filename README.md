@@ -54,7 +54,7 @@ Constructs a `RouteHandler` that matches a given method (`GET`, `POST`, etc) and
 - `text(req, options)` - read the request body as a string
 - `json(req, options)` - read the request body as parsed JSON
 
-## Request helpers
+### Request helpers
 
 - `getHeader(req, header)` - returns the requested header if it was provided
 - `fromRequest(fn)` - wraps a function in the form `(req: ServerRequest, ...rest) => any` to return an equivalent function that caches its results for the provided request
