@@ -105,7 +105,3 @@ Special thanks to [@nornagon](https://github.com/nornagon) for the `zap` package
 ## License
 
 MIT License, see `LICENSE`.
-
-```
-
-```
