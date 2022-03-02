@@ -9,22 +9,22 @@ specifiers:
   prettier: ^2.5.1
   prettier-plugin-organize-imports: ^2.3.4
   prettier-plugin-pkg: ^0.11.1
-  raw-body: ^2.4.2
-  typescript: ^4.5.2
+  raw-body: ^2.5.1
+  typescript: ^4.6.2
 
 dependencies:
   content-type: 1.0.4
   path-to-regexp: 6.2.0
-  raw-body: 2.4.2
+  raw-body: 2.5.1
 
 devDependencies:
   '@tsconfig/node14': 1.0.1
   '@types/content-type': 1.1.5
   '@types/node': 16.11.11
   prettier: 2.5.1
-  prettier-plugin-organize-imports: 2.3.4_prettier@2.5.1+typescript@4.5.2
+  prettier-plugin-organize-imports: 2.3.4_prettier@2.5.1+typescript@4.6.2
   prettier-plugin-pkg: 0.11.1_prettier@2.5.1
-  typescript: 4.5.2
+  typescript: 4.6.2
 
 packages:
 
@@ -40,8 +40,8 @@ packages:
     resolution: {integrity: sha512-KB0sixD67CeecHC33MYn+eYARkqTheIRNuu97y2XMjR7Wu3XibO1vaY6VBV6O/a89SPI81cEUIYT87UqUWlZNw==}
     dev: true
 
-  /bytes/3.1.1:
-    resolution: {integrity: sha512-dWe4nWO/ruEOY7HkUJ5gFt1DCFV9zPRoJr8pV0/ASQermOZjtq8jMjOprC0Kd10GLN+l7xaUPvxzJFWtxGu8Fg==}
+  /bytes/3.1.2:
+    resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
     engines: {node: '>= 0.8'}
     dev: false
 
@@ -50,19 +50,19 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
-  /depd/1.1.2:
-    resolution: {integrity: sha1-m81S4UwJd2PnSbJ0xDRu0uVgtak=}
-    engines: {node: '>= 0.6'}
+  /depd/2.0.0:
+    resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
+    engines: {node: '>= 0.8'}
     dev: false
 
-  /http-errors/1.8.1:
-    resolution: {integrity: sha512-Kpk9Sm7NmI+RHhnj6OIWDI1d6fIoFAtFt9RLaTMRlg/8w49juAStsrBgp0Dp4OdxdVbRIeKhtCUvoi/RuAhO4g==}
-    engines: {node: '>= 0.6'}
+  /http-errors/2.0.0:
+    resolution: {integrity: sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==}
+    engines: {node: '>= 0.8'}
     dependencies:
-      depd: 1.1.2
+      depd: 2.0.0
       inherits: 2.0.4
       setprototypeof: 1.2.0
-      statuses: 1.5.0
+      statuses: 2.0.1
       toidentifier: 1.0.1
     dev: false
 
@@ -81,14 +81,14 @@ packages:
     resolution: {integrity: sha512-f66KywYG6+43afgE/8j/GoiNyygk/bnoCbps++3ErRKsIYkGGupyv07R2Ok5m9i67Iqc+T2g1eAUGUPzWhYTyg==}
     dev: false
 
-  /prettier-plugin-organize-imports/2.3.4_prettier@2.5.1+typescript@4.5.2:
+  /prettier-plugin-organize-imports/2.3.4_prettier@2.5.1+typescript@4.6.2:
     resolution: {integrity: sha512-R8o23sf5iVL/U71h9SFUdhdOEPsi3nm42FD/oDYIZ2PQa4TNWWuWecxln6jlIQzpZTDMUeO1NicJP6lLn2TtRw==}
     peerDependencies:
       prettier: '>=2.0'
       typescript: '>=2.9'
     dependencies:
       prettier: 2.5.1
-      typescript: 4.5.2
+      typescript: 4.6.2
     dev: true
 
   /prettier-plugin-pkg/0.11.1_prettier@2.5.1:
@@ -105,12 +105,12 @@ packages:
     hasBin: true
     dev: true
 
-  /raw-body/2.4.2:
-    resolution: {integrity: sha512-RPMAFUJP19WIet/99ngh6Iv8fzAbqum4Li7AD6DtGaW2RpMB/11xDoalPiJMTbu6I3hkbMVkATvZrqb9EEqeeQ==}
+  /raw-body/2.5.1:
+    resolution: {integrity: sha512-qqJBtEyVgS0ZmPGdCFPWJ3FreoqvG4MVQln/kCgF7Olq95IbOp0/BWyMwbdtn4VTvkM8Y7khCQ2Xgk/tcrCXig==}
     engines: {node: '>= 0.8'}
     dependencies:
-      bytes: 3.1.1
-      http-errors: 1.8.1
+      bytes: 3.1.2
+      http-errors: 2.0.0
       iconv-lite: 0.4.24
       unpipe: 1.0.0
     dev: false
@@ -123,9 +123,9 @@ packages:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
     dev: false
 
-  /statuses/1.5.0:
-    resolution: {integrity: sha1-Fhx9rBd2Wf2YEfQ3cfqZOBR4Yow=}
-    engines: {node: '>= 0.6'}
+  /statuses/2.0.1:
+    resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
+    engines: {node: '>= 0.8'}
     dev: false
 
   /toidentifier/1.0.1:
@@ -133,8 +133,8 @@ packages:
     engines: {node: '>=0.6'}
     dev: false
 
-  /typescript/4.5.2:
-    resolution: {integrity: sha512-5BlMof9H1yGt0P8/WF+wPNw6GfctgGjXp5hkblpyT+8rkASSmkUKMXrxR0Xg8ThVCi/JnHQiKXeBaEwCeQwMFw==}
+  /typescript/4.6.2:
+    resolution: {integrity: sha512-HM/hFigTBHZhLXshn9sN37H085+hQGeJHJ/X7LpBWLID/fbc2acUMfU+lGD98X81sKP+pFa9f0DZmCwB9GnbAg==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
