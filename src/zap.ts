@@ -307,11 +307,11 @@ function isReadableStream(val: unknown): val is Readable {
 export function fromRequest<Fn extends (req: ServerRequest, ...rest: any[]) => any>(fn: Fn): Fn {
   const cache = new WeakMap<ServerRequest, any>()
   const errorCache = new WeakMap<ServerRequest, any>()
-  const cachedFn = (req: ServerRequest) => {
+  const cachedFn = (req: ServerRequest, ...rest: any[]) => {
     if (errorCache.has(req)) throw errorCache.get(req)
     if (cache.has(req)) return cache.get(req)
     try {
-      const value = fn(req)
+      const value = fn(req, ...rest)
       cache.set(req, value)
       return value
     } catch (error) {
