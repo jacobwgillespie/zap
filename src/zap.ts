@@ -206,14 +206,14 @@ export function notFound() {
 
 // Router ----------------------------------------------------------------------
 
-export function router(...handlers: RouteHandler<HttpMethod, any, ResponseBodyType>[]) {
-  return async function (req: ServerRequest, res: ServerResponse) {
+export function router(...handlers: RouteHandler<HttpMethod, any, ResponseBodyType>[]): Handler {
+  return async function (req, res) {
     for (const current of handlers) {
       if (req.method !== current.method) continue
       const match = current.matchPath(req.parsedURL.pathname)
       if (!match) continue
       req.params = match.params
-      await current(req as ServerRequest<any>, res)
+      return await current(req as ServerRequest<any>, res)
     }
     return send(res, 404, 'Not Found')
   }
