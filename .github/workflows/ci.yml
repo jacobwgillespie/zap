@@ -16,7 +16,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/package.json') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-
-      - uses: pnpm/action-setup@v2.2.3
+      - uses: pnpm/action-setup@v2.2.4
         with:
           version: 6.9.1
       - run: pnpm install --frozen-lockfile
